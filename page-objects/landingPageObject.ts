@@ -11,6 +11,12 @@ export class LandingPageObject {
     const dialogContainer = this.page.locator('.fc-dialog-container')
     const consentButton = dialogContainer.getByRole('button', { name: 'Consent' })
 
-    await consentButton.click()
+    // For some reason Consent dialog doesn't appear when tests are run by Github Workflow.
+    // If it would appear with delay specs would fail, because Playwright would
+    // not be able to interact with page.
+    try {
+      await consentButton.waitFor({ timeout: 2000 })
+      await consentButton.click()
+    } catch (error) {}
   }
 }
