@@ -35,6 +35,18 @@ export class EmiCalculatorHelper {
     return `${principalAmountPercentage.toFixed(1)}%`
   }
 
+  roundedTotalAmountPerYear(numberOfYears: number): number {
+    return Math.round(this.totalAmountPerYear(new Big(numberOfYears)))
+  }
+
+  roundedInterestAmountPerYear(targetYear: number): number {
+    return Math.round(this.interestAmountPerYear(targetYear))
+  }
+
+  roundedPrincipalAmountPerYear(targetYear: number): number {
+    return Math.round(this.principalAmountPerYear(targetYear))
+  }
+
   // To achieve correct result, calculation on money needs to be done on BigDecimal type.
   // Additionaly rounding multipe times during the calculation will make result incorrect.
   private emiAmount(): Big {
@@ -50,5 +62,53 @@ export class EmiCalculatorHelper {
 
   private totalInterest(): Big {
     return this.totalAmount().minus(this.loanAmount)
+  }
+
+  private totalAmountPerYear(numberOfYears: Big): Big {
+    return this.totalAmount().div(numberOfYears)
+  }
+
+  private interestAmountPerYear(targetYear: number): Big {
+    const monthlyRate = this.interestRate.div(12).div(100)
+    const emiAmount = this.emiAmount()
+  
+    let outstanding = this.loanAmount
+    let totalInterest = new Big(0)
+  
+    for (let monthNumber = 1; monthNumber <= this.loanTenureInMonths; monthNumber++) {
+      const monthInterest = outstanding.times(monthlyRate)
+      const principalPayment = emiAmount.minus(monthInterest)
+      outstanding = outstanding.minus(principalPayment)
+  
+      const currentYear = Math.floor((monthNumber - 1) / 12) + 1;
+  
+      if (currentYear === targetYear) {
+        totalInterest = totalInterest.plus(monthInterest)
+      }
+    }
+  
+    return new Big(totalInterest)
+  }
+
+  private principalAmountPerYear(targetYear: number): Big {
+    const monthlyRate = this.interestRate.div(12).div(100)
+    const emiAmount = this.emiAmount()
+  
+    let outstanding = this.loanAmount
+    let principalPaid = new Big(0)
+  
+    for (let monthNumber = 1; monthNumber <= this.loanTenureInMonths; monthNumber++) {
+      const monthInterest = outstanding.times(monthlyRate)
+      const principalPayment = emiAmount.minus(monthInterest)
+      outstanding = outstanding.minus(principalPayment)
+        
+      const currentYear = Math.floor((monthNumber - 1) / 12) + 1;
+
+      if (currentYear === targetYear) {
+        principalPaid = principalPaid.plus(principalPayment)
+      }
+    }
+  
+    return new Big(principalPaid)
   }
 }

@@ -1,14 +1,13 @@
 import { test } from '@playwright/test'
+import { LandingPageObject } from '../../../page-objects/landingPageObject'
 import { EmiCalculatorObject } from '../../../page-objects/emiCalculatorObject'
 
 test.describe('EMI Calculator Home Loan tab', () => {
   test.beforeEach(async ({ page }) => {
+    const landingPageObject = new LandingPageObject(page)
+
     await page.goto('https://emicalculator.net/')
-
-    const dialogContainer = page.locator('.fc-dialog-container')
-    const consentButton = dialogContainer.getByRole('button', { name: 'Consent' })
-
-    await consentButton.click()
+    await landingPageObject.acceptUserDataConstentModal()
   })
 
   test.describe('Pie Chart with ₹25L home loan amount, 10% interest rate and 10 years tenure', () => {
@@ -18,7 +17,7 @@ test.describe('EMI Calculator Home Loan tab', () => {
       const interestRate = 10
       const loanTenureInYears = 10
 
-      await emiCalculatorObject.openHomeLoanTab()
+      await emiCalculatorObject.openCalculatorTab('Home Loan')
       await emiCalculatorObject.fillEmiCalculatorForm(homeLoanAmount, interestRate, loanTenureInYears)
       await emiCalculatorObject.validateEmiPaymentsSummary(homeLoanAmount, interestRate, loanTenureInYears)
       await emiCalculatorObject.validatePieChartPercentages(homeLoanAmount, interestRate, loanTenureInYears)
@@ -32,7 +31,7 @@ test.describe('EMI Calculator Home Loan tab', () => {
       const interestRate = 7.5
       const loanTenureInYears = 15
 
-      await emiCalculatorObject.openHomeLoanTab()
+      await emiCalculatorObject.openCalculatorTab('Home Loan')
       await emiCalculatorObject.fillEmiCalculatorForm(homeLoanAmount, interestRate, loanTenureInYears)
       await emiCalculatorObject.validateEmiPaymentsSummary(homeLoanAmount, interestRate, loanTenureInYears)
       await emiCalculatorObject.validatePieChartPercentages(homeLoanAmount, interestRate, loanTenureInYears)

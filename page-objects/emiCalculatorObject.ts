@@ -1,4 +1,4 @@
-import { expect, Page } from '@playwright/test'
+import { expect, Page, Locator } from '@playwright/test'
 import { EmiCalculatorHelper } from '../helpers/emiCalculatorHelper'
 
 export class EmiCalculatorObject {
@@ -8,11 +8,11 @@ export class EmiCalculatorObject {
     this.page = page
   }
 
-  async openHomeLoanTab() {
+  async openCalculatorTab(tabName: string) {
     const emiCalculatorDashboard = this.page.locator('#emicalculatordashboard')
-    const homeLoanLink = emiCalculatorDashboard.getByRole('link', { name: 'Home Loan' })
+    const tabLink = emiCalculatorDashboard.getByRole('link', { name: tabName })
 
-    await homeLoanLink.click()
+    await tabLink.click()
   }
 
   async fillEmiCalculatorForm(homeLoanAmount: number, interestRate: number, loanTenureYears: number) {
@@ -62,5 +62,61 @@ export class EmiCalculatorObject {
     // Otherwise I would validate against verified hard-coded values for readability.
     expect(totalInterestPercentage).toEqual(expectedTotalInterestPercentage)
     expect(principalAmountPercentage).toEqual(expectedPrincipalAmountPercentage)
+  }
+
+  // Check later for right place for this function
+  async slideToValue(sliderLocator: Locator, targetValue: number, minValue: number, maxValue: number) {
+    const sliderHandle = sliderLocator.locator('span.ui-slider-handle')
+
+    await sliderHandle.scrollIntoViewIfNeeded()
+    await sliderHandle.hover()
+
+    const sliderBox = await sliderLocator.boundingBox()
+    const mouseMoveX = (targetValue - minValue) / (maxValue - minValue) * sliderBox.width
+
+    await this.page.mouse.down()
+    await this.page.mouse.move(sliderBox.x + mouseMoveX, sliderBox.y)
+    await this.page.mouse.up()
+  }
+
+  async setStartingFromMonth(monthName: string) {
+    const startingFromInput = this.page.locator('#startmonthyear')
+    await startingFromInput.click()
+
+    const janButton = this.page.locator('.datepicker-months span.month').getByText(monthName, { exact: true })
+    await janButton.click()
+
+    // Wait for EMI Bar Chart update.
+    await this.page.waitForTimeout(500)
+  }
+
+  async validateBarChartTooltips(barsLocator: Locator, barType: string, loanTenureInYears: number, emiCalculatorHelper: EmiCalculatorHelper) {
+    const emiBarChart = this.page.locator('#emibarchart')
+    const allBars = await barsLocator.all()
+    const expectedYear = new Date().getFullYear()
+    const expectedTotalAmountPerYear = emiCalculatorHelper.roundedTotalAmountPerYear(loanTenureInYears)
+
+    for (let index = 0; index < allBars.length; index++) {
+      const singleBar = allBars[index]
+      
+      await singleBar.scrollIntoViewIfNeeded()
+      await singleBar.hover() 
+
+      const barTooltip = emiBarChart.locator('.highcharts-tooltip')
+      const yearLine = await barTooltip.locator('tspan').nth(0).textContent()
+      const middleLine = await barTooltip.locator('tspan').nth(1).textContent()
+      const totalPaymentLine = await barTooltip.locator('tspan').nth(2).textContent()
+
+      expect(yearLine).toEqual(`Year : ${expectedYear + index}`)
+      if (barType === 'Interest') {
+        const expectedInterestAmountPerYear = emiCalculatorHelper.roundedInterestAmountPerYear(index + 1)
+        expect(middleLine).toEqual(`Interest : ₹ ${expectedInterestAmountPerYear.toLocaleString('hi-IN')}`)
+      } else if (barType == 'Principal') {
+        const expectedPrincipalAmountPerYear = emiCalculatorHelper.roundedPrincipalAmountPerYear(index + 1)
+        expect(middleLine).toEqual(`Principal : ₹ ${expectedPrincipalAmountPerYear.toLocaleString('hi-IN')}`)
+      }
+      
+      expect(totalPaymentLine).toEqual(`Total Payment : ₹ ${expectedTotalAmountPerYear.toLocaleString('hi-IN')}`)
+    }
   }
 }
