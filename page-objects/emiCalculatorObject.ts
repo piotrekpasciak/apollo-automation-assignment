@@ -15,19 +15,21 @@ export class EmiCalculatorObject {
     await tabLink.click()
   }
 
-  async fillEmiCalculatorForm(homeLoanAmount: number, interestRate: number, loanTenureYears: number) {
+  async fillEmiCalculatorForm(tabName: string, loanAmount: number, interestRate: number, loanTenureYears: number) {
     const emiCalculatorForm = this.page.locator('#emicalculatorform')
-    const homeLoanAmountInput = emiCalculatorForm.getByLabel('Home Loan Amount')
+    const homeLoanAmountInput = emiCalculatorForm.getByLabel(`${tabName} Amount`)
     const interestRateInput = emiCalculatorForm.getByLabel('Interest Rate')
     const loanTenureInput = emiCalculatorForm.getByLabel('Loan Tenure')
 
-    await homeLoanAmountInput.fill(homeLoanAmount.toLocaleString('hi-IN'))
+    await homeLoanAmountInput.fill(loanAmount.toLocaleString('hi-IN'))
     await interestRateInput.fill(String(interestRate))
     await loanTenureInput.fill(String(loanTenureYears))
     // Load Tenure slider updates only after input is blurred.
     await loanTenureInput.blur()
-    // Wait for Pie Chart to update calculations.
-    await this.page.waitForTimeout(500)
+
+    // Wait for Pie Chart to update calculations. Chart labels are last elements
+    // that are displayed and for this reason we can rely on them.
+    await this.page.waitForSelector('#emipiechart .highcharts-label', { state: 'visible' })
   }
 
   async validateEmiPaymentsSummary(homeLoanAmount: number, interestRate: number, loanTenureYears: number) {
@@ -64,7 +66,13 @@ export class EmiCalculatorObject {
     expect(principalAmountPercentage).toEqual(expectedPrincipalAmountPercentage)
   }
 
-  // Check later for right place for this function
+  async validatePaymentsBrakeUpAndPieChart(tabName: string, loanAmount: number, interestRate: number, loanTenureInYears: number) {
+    await this.openCalculatorTab(tabName)
+    await this.fillEmiCalculatorForm(tabName, loanAmount, interestRate, loanTenureInYears)
+    await this.validateEmiPaymentsSummary(loanAmount, interestRate, loanTenureInYears)
+    await this.validatePieChartPercentages(loanAmount, interestRate, loanTenureInYears)
+  }
+
   async slideToValue(sliderLocator: Locator, targetValue: number, minValue: number, maxValue: number) {
     const sliderHandle = sliderLocator.locator('span.ui-slider-handle')
 

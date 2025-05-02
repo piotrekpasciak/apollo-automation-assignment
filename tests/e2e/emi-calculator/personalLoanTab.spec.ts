@@ -55,8 +55,6 @@ test.describe('EMI Calculator Personal Loan tab', () => {
       
       await emiCalculatorObject.validateBarChartTooltips(interestBarsLocator, 'Interest', loanTenureInYears, emiCalculatorHelper)
       await emiCalculatorObject.validateBarChartTooltips(prrincipalBarsLocator, 'Principal', loanTenureInYears, emiCalculatorHelper)
-
-      await page.waitForTimeout(500)
     })
   })
 })
